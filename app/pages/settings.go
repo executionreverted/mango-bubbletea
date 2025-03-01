@@ -1,9 +1,10 @@
-// app/pages/settings_page.go
+// app/pages/settings.go
 package pages
 
 import (
 	"bubbletea-app/app/components"
 	"bubbletea-app/app/config"
+	"bubbletea-app/app/global"
 	"bubbletea-app/app/styles"
 	"fmt"
 
@@ -13,19 +14,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type (
-	InputFocusChangedMsg bool
-	SettingsModel        struct {
-		inputs     []textinput.Model
-		saveButton components.ButtonModel
-		header     components.HeaderModel
-		keyMap     config.KeyMap
-		width      int
-		height     int
-		focusIndex int // tracks which element has focus
-		focusables int // total focusable elements
-	}
-)
+type SettingsModel struct {
+	inputs     []textinput.Model
+	buttons    []components.ButtonModel
+	header     components.HeaderModel
+	footer     components.FooterModel
+	keyMap     config.KeyMap
+	width      int
+	height     int
+	focusIndex int // tracks which element has focus
+	focusables int // total focusable elements
+}
 
 func NewSettingsModel(keyMap config.KeyMap) SettingsModel {
 	// Create inputs
@@ -45,11 +44,17 @@ func NewSettingsModel(keyMap config.KeyMap) SettingsModel {
 	apiKeyInput.Blur()
 
 	// Create button with save action
-	saveButton := components.NewButtonModel("Save Configuration", nil)
+	saveButton := components.NewButtonModel("Save Configuration", func() tea.Msg {
+		fmt.Println("Config saved:", hostInput.Value(), portInput.Value(), apiKeyInput.Value())
+		return nil
+	})
+	leaveButton := components.NewButtonModel("QUIT!", func() tea.Msg {
+		return tea.Quit()
+	})
 
 	return SettingsModel{
 		inputs:     []textinput.Model{hostInput, portInput, apiKeyInput},
-		saveButton: saveButton,
+		buttons:    []components.ButtonModel{saveButton, leaveButton},
 		header:     components.NewHeaderModel("Settings"),
 		keyMap:     keyMap,
 		focusIndex: 0,
@@ -62,82 +67,79 @@ func (m SettingsModel) Init() tea.Cmd {
 }
 
 func (m SettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-
 	case tea.KeyMsg:
-		// Check if we're currently editing an input
-		inputInFocus := m.focusIndex < len(m.inputs) && m.inputs[m.focusIndex].Focused()
-
-		// If ESC is pressed while editing, exit edit mode but keep focus on input
-		if inputInFocus && msg.String() == "esc" {
-			m.inputs[m.focusIndex].Blur()
-			return m, nil
-		}
-
-		// If an input has focus, don't process navigation keys - let the input handle them
-		if inputInFocus {
-			var cmd tea.Cmd
-			m.inputs[m.focusIndex], cmd = m.inputs[m.focusIndex].Update(msg)
-			return m, cmd
-		}
-
-		// Navigation only works when no input is in edit mode
-		switch {
-		case key.Matches(msg, m.keyMap.Enter):
-			if m.focusIndex > -1 {
-				m.focusCurrent()
+		// Handle already focused inputs first
+		for i, input := range m.inputs {
+			if input.Focused() {
+				if key.Matches(msg, m.keyMap.Esc) {
+					m.inputs[i].Blur()
+					return m, func() tea.Msg {
+						return global.InputFocusChangedMsg(false)
+					}
+				}
+				var cmd tea.Cmd
+				m.inputs[i], cmd = m.inputs[i].Update(msg)
+				return m, cmd
 			}
+		}
+
+		// Navigation when no inputs are focused
+		switch {
 		case key.Matches(msg, m.keyMap.Down) || msg.String() == "j":
-			m.blurAll()
 			m.focusIndex = (m.focusIndex + 1) % m.focusables
+			updateFocusState(&m)
 			return m, nil
 
 		case key.Matches(msg, m.keyMap.Up) || msg.String() == "k":
-			m.blurAll()
 			m.focusIndex = (m.focusIndex - 1 + m.focusables) % m.focusables
+			updateFocusState(&m)
+			return m, nil
+
+		case key.Matches(msg, m.keyMap.Left) || msg.String() == "h":
+			// Only navigate left when on a button
+			if m.focusIndex >= len(m.inputs) {
+				buttonIndex := m.focusIndex - len(m.inputs)
+				if buttonIndex > 0 {
+					m.focusIndex--
+					updateFocusState(&m)
+				}
+			}
+			return m, nil
+
+		case key.Matches(msg, m.keyMap.Right) || msg.String() == "l":
+			// Only navigate right when on a button
+			if m.focusIndex >= len(m.inputs) {
+				buttonIndex := m.focusIndex - len(m.inputs)
+				if buttonIndex < len(m.buttons)-1 {
+					m.focusIndex++
+					updateFocusState(&m)
+				}
+			}
 			return m, nil
 
 		case key.Matches(msg, m.keyMap.Enter):
-			// If an input is selected (but not in edit mode), enter edit mode
+			// Toggle input focus or activate button
 			if m.focusIndex < len(m.inputs) {
 				m.inputs[m.focusIndex].Focus()
-				return m, textinput.Blink
-			}
-
-			// If button is focused, execute its action
-			if m.focusIndex == m.focusables-1 {
-				return m, func() tea.Msg {
-					return SaveSettingsMsg{
-						Host:   m.inputs[0].Value(),
-						Port:   m.inputs[1].Value(),
-						APIKey: m.inputs[2].Value(),
-					}
+				return m, tea.Batch(
+					textinput.Blink,
+					func() tea.Msg {
+						return global.InputFocusChangedMsg(true)
+					},
+				)
+			} else {
+				buttonIndex := m.focusIndex - len(m.inputs)
+				if buttonIndex < len(m.buttons) {
+					return m, m.buttons[buttonIndex].OnClick
 				}
 			}
 		}
 	}
 
-	return m, nil
-}
-
-// Helper to blur all focusable elements
-func (m *SettingsModel) blurAll() {
-	for i := range m.inputs {
-		m.inputs[i].Blur()
-	}
-	m.saveButton.Blur()
-}
-
-// Helper to focus current element
-func (m *SettingsModel) focusCurrent() {
-	if m.focusIndex < len(m.inputs) {
-		m.inputs[m.focusIndex].Focus()
-	} else {
-		m.saveButton.Focus()
-	}
+	return m, tea.Batch(cmds...)
 }
 
 // Message sent when save button is clicked
@@ -187,36 +189,60 @@ func (m SettingsModel) View() string {
 		inputsView += fmt.Sprintf("%s\n%s\n\n", label, inputBox)
 	}
 
-	// Render button
-	buttonStyle := lipgloss.NewStyle().
-		Padding(0, 2).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(map[bool]lipgloss.Color{
-			true:  lipgloss.Color("#25A065"),
-			false: lipgloss.Color("#AAAAAA"),
-		}[m.focusIndex == m.focusables-1])
+	// Alternative with more buttons and dynamic spacing:
+	buttonViews := make([]string, len(m.buttons))
+	for i, button := range m.buttons {
+		buttonViews[i] = button.View()
+	}
 
-	buttonView := buttonStyle.Render(m.saveButton.Text)
+	buttonsContainer := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		buttonViews...,
+	)
 
 	// Navigation help
 	var navHelp string
 	if m.focusIndex < len(m.inputs) && m.inputs[m.focusIndex].Focused() {
 		navHelp = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF6700")).
-			Render("EDIT MODE: Press ESC to exit editing")
+			Render("EDIT MODE: Press ESC to exit editing or ENTER to submit")
 	} else {
 		navHelp = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888")).
 			Render("Navigate with ↑↓ or j/k • Press Enter to edit/select")
 	}
+	// Footer view
+	footerView := m.footer.View(m.width)
 
+	contentHeight := m.height - 4 // Subtract nav and footer height
 	content := fmt.Sprintf(
-		"%s\n\n%s%s\n\n%s",
+		"%s\n%s%s\n%s\n%s",
 		headerView,
 		inputsView,
-		buttonView,
+		buttonsContainer,
 		navHelp,
+		footerView,
 	)
+	contentContainer := lipgloss.NewStyle().
+		Height(contentHeight).Render(content)
 
-	return styles.PageStyle.Width(m.width - 2).Render(content)
+	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
+}
+
+func updateFocusState(m *SettingsModel) {
+	// Clear focus on all elements
+	for i := range m.inputs {
+		m.inputs[i].Blur()
+	}
+	for i := range m.buttons {
+		m.buttons[i].Blur()
+	}
+
+	// Set focus only on buttons when they're selected
+	if m.focusIndex >= len(m.inputs) {
+		buttonIndex := m.focusIndex - len(m.inputs)
+		if buttonIndex < len(m.buttons) {
+			m.buttons[buttonIndex].Focus()
+		}
+	}
 }

@@ -46,6 +46,8 @@ func (m AboutModel) View() string {
 		headerView,
 		aboutText,
 	)
-
-	return styles.PageStyle.Width(m.width - 2).Render(content)
+	contentHeight := m.height - 4 // Subtract nav and footer height
+	contentContainer := lipgloss.NewStyle().
+		Height(contentHeight).Render(content)
+	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
 }

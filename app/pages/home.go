@@ -9,11 +9,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type HomeModel struct {
 	list   list.Model
 	header components.HeaderModel
+	footer components.FooterModel
 	width  int
 	height int
 }
@@ -72,12 +74,16 @@ func (m HomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m HomeModel) View() string {
 	headerView := m.header.View(m.width)
-
+	footerView := m.footer.View(m.width)
+	contentHeight := m.height - 4 // Subtract nav and footer height
 	content := fmt.Sprintf(
-		"%s\n%s",
+		"%s\n%s\n%s",
 		headerView,
 		m.list.View(),
+		footerView,
 	)
+	contentContainer := lipgloss.NewStyle().
+		Height(contentHeight).Render(content)
 
-	return styles.PageStyle.Width(m.width - 2).Render(content)
+	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
 }

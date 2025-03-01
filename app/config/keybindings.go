@@ -3,9 +3,38 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
 
 	"github.com/charmbracelet/bubbles/key"
 )
+
+// KeymapFileName returns the full path to keymap config file
+func KeymapFileName() string {
+	return filepath.Join(GetConfigPath(), "keymap.json")
+}
+
+// GetConfigPath returns OS-specific config directory path
+func GetConfigPath() string {
+	configDir := ".config/sleek"
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		// Fallback to local directory if home can't be found
+		return configDir
+	}
+
+	// For Windows, use %APPDATA%
+	if runtime.GOOS == "windows" {
+		appData := os.Getenv("APPDATA")
+		if appData != "" {
+			return filepath.Join(appData, "sleek")
+		}
+	}
+
+	// For Linux/macOS use ~/.config/sleek
+	return filepath.Join(homeDir, configDir)
+}
 
 // KeyMap defines keybindings for the application
 type KeyMap struct {
@@ -19,6 +48,7 @@ type KeyMap struct {
 	Settings key.Binding
 	About    key.Binding
 	Enter    key.Binding
+	Esc      key.Binding
 	Back     key.Binding
 	J        key.Binding
 	K        key.Binding
@@ -67,6 +97,10 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("enter"),
 			key.WithHelp("enter", "confirm"),
 		),
+		Esc: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "escape"),
+		),
 		Back: key.NewBinding(
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "back"),
@@ -91,13 +125,19 @@ func SaveKeyMap(km KeyMap, filename string) error {
 	return os.WriteFile(filename, data, 0644)
 }
 
-// LoadKeyMap loads custom keybindings from a file
-func LoadKeyMap(filename string) (KeyMap, error) {
+// LoadKeyMap loads custom keybindings from the config file
+func LoadKeyMap() (KeyMap, error) {
 	km := DefaultKeyMap()
+	configDir := GetConfigPath()
+	filename := KeymapFileName()
+
+	// Ensure directory exists
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return km, err
+	}
 
 	// Check if file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		// Save default keybindings
 		SaveKeyMap(km, filename)
 		return km, nil
 	}
@@ -107,6 +147,43 @@ func LoadKeyMap(filename string) (KeyMap, error) {
 		return km, err
 	}
 
-	err = json.Unmarshal(data, &km)
-	return km, err
+	var userKeymap map[string]string
+	err = json.Unmarshal(data, &userKeymap)
+	if err != nil {
+		return km, err
+	}
+
+	// Apply the keymaps after successful unmarshaling
+	km = ApplySimpleKeyMap(km, userKeymap)
+
+	return km, nil
+}
+
+// ApplySimpleKeyMap applies user key mappings to the default keymap
+func ApplySimpleKeyMap(defaultMap KeyMap, umap map[string]string) KeyMap {
+	// Get reflection value of KeyMap struct
+	val := reflect.ValueOf(&defaultMap).Elem()
+
+	// Iterate through the user's key mappings
+	for fieldName, keyVal := range umap {
+		// Find the corresponding field in the KeyMap struct
+		field := val.FieldByName(fieldName)
+
+		if field.IsValid() && field.Type() == reflect.TypeOf(key.Binding{}) {
+			// Get the description from the original binding
+			origBinding := field.Interface().(key.Binding)
+			h := origBinding.Help()
+
+			// Create a new binding with the custom key
+			newBinding := key.NewBinding(
+				key.WithKeys(keyVal),
+				key.WithHelp(keyVal, h.Desc),
+			)
+
+			// Set the field to the new binding
+			field.Set(reflect.ValueOf(newBinding))
+		}
+	}
+
+	return defaultMap
 }

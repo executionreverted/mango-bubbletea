@@ -2,6 +2,7 @@ package main
 
 import (
 	"bubbletea-app/app/config"
+	"bubbletea-app/app/global"
 	"bubbletea-app/app/pages"
 	"fmt"
 	"os"
@@ -9,29 +10,32 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/term"
 )
 
-type appModel struct {
-	currentPage      string
-	homeModel        pages.HomeModel
-	settingsModel    pages.SettingsModel
-	aboutModel       pages.AboutModel
-	keyMap           config.KeyMap
-	width            int
-	height           int
-	showHelp         bool
-	activeNavigation bool
-
-	inputInFocus bool // Track if any input has focus globally
-}
+type (
+	appModel struct {
+		currentPage      string
+		homeModel        pages.HomeModel
+		settingsModel    pages.SettingsModel
+		aboutModel       pages.AboutModel
+		keyMap           config.KeyMap
+		width            int
+		height           int
+		showHelp         bool
+		activeNavigation bool
+		inputInFocus     bool // Track if any input has focus globally
+	}
+)
 
 func initialModel() appModel {
 	// Load keybindings
-	keyMap, err := config.LoadKeyMap("keybindings.json")
+	keyMap, err := config.LoadKeyMap()
 	if err != nil {
 		keyMap = config.DefaultKeyMap()
 	}
 
+	width, height, _ := term.GetSize(0)
 	return appModel{
 		currentPage:   "home",
 		homeModel:     pages.NewHomeModel(keyMap),
@@ -39,6 +43,8 @@ func initialModel() appModel {
 		aboutModel:    pages.NewAboutModel(),
 		keyMap:        keyMap,
 		showHelp:      false,
+		width:         width,
+		height:        height,
 	}
 }
 
@@ -55,7 +61,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-	case InputFocusChangedMsg:
+	case global.InputFocusChangedMsg:
 		// Update the global input focus state
 		m.inputInFocus = bool(msg)
 		return m, nil
@@ -186,16 +192,8 @@ func (m appModel) View() string {
 		content = m.aboutModel.View()
 	}
 
-	// Footer
-	footer := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFFDF5")).
-		Background(lipgloss.Color("#2F4858")).
-		Padding(0, 1).
-		Width(m.width - 2).
-		Render("Bubble Tea App Boilerplate")
-
 	// Combine all elements
-	return lipgloss.JoinVertical(lipgloss.Left, nav, content, footer)
+	return lipgloss.JoinVertical(lipgloss.Left, nav, content)
 }
 
 func main() {
@@ -205,5 +203,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-type InputFocusChangedMsg bool
