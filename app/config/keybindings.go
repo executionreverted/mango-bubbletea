@@ -52,6 +52,7 @@ type KeyMap struct {
 	Back     key.Binding
 	J        key.Binding
 	K        key.Binding
+	Ctrl     key.Binding
 }
 
 // DefaultKeyMap returns the default keybindings
@@ -113,6 +114,10 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("k"),
 			key.WithHelp("k", "previous item"),
 		),
+		Ctrl: key.NewBinding(
+			key.WithKeys("ctrl"),
+			key.WithHelp("ctrl", ""),
+		),
 	}
 }
 
@@ -138,7 +143,6 @@ func LoadKeyMap() (KeyMap, error) {
 
 	// Check if file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		SaveKeyMap(km, filename)
 		return km, nil
 	}
 

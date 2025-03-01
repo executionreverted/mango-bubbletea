@@ -34,9 +34,9 @@ func initialModel() appModel {
 	// Load keybindings
 	keyMap, err := config.LoadKeyMap()
 	if err != nil {
-		keyMap = config.DefaultKeyMap()
+		fmt.Fprintf(os.Stderr, "Error loading keymap configuration: %v\n", err)
+		os.Exit(1)
 	}
-
 	width, height, _ := term.GetSize(0)
 
 	return appModel{
