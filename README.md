@@ -33,7 +33,7 @@ bubbletea-app/
 
 You can set up your own keyboard shortcuts by creating a file at `~/.config/sleek/keymap.json`.
 
-### Keys You Can Change
+### Keys You Can Change (WIP, idk)
 
 ```
 Up, Down, Left, Right - Navigation
