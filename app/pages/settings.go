@@ -70,7 +70,12 @@ func (m SettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
 	case tea.KeyMsg:
+
 		// Handle already focused inputs first
 		for i, input := range m.inputs {
 			if input.Focused() {
@@ -150,16 +155,11 @@ type SaveSettingsMsg struct {
 }
 
 func (m SettingsModel) View() string {
-	headerView := m.header.View(m.width)
-
-	// Render inputs
 	inputsView := ""
 	inputLabels := []string{"Host:", "Port:", "API Key:"}
 	for i, input := range m.inputs {
-		// Visual indication of selection vs actual focus
 		selected := m.focusIndex == i
 		editing := input.Focused()
-
 		label := lipgloss.NewStyle().
 			Bold(selected).
 			Foreground(map[bool]lipgloss.Color{
@@ -167,34 +167,28 @@ func (m SettingsModel) View() string {
 				false: lipgloss.Color("#888888"),
 			}[selected]).
 			Render(inputLabels[i])
-
-		// Style for the input box
 		inputBox := input.View()
 		if selected && !editing {
-			// Selected but not in edit mode - add highlight
 			inputBox = lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("#25A065")).
 				Padding(0, 1).
 				Render(inputBox)
 		} else if editing {
-			// Currently being edited
 			inputBox = lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("#FF6700")). // Orange for edit mode
+				BorderForeground(lipgloss.Color("#FF6700")).
 				Padding(0, 1).
 				Render(inputBox)
 		}
-
 		inputsView += fmt.Sprintf("%s\n%s\n\n", label, inputBox)
 	}
 
-	// Alternative with more buttons and dynamic spacing:
+	// Render buttons
 	buttonViews := make([]string, len(m.buttons))
 	for i, button := range m.buttons {
 		buttonViews[i] = button.View()
 	}
-
 	buttonsContainer := lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		buttonViews...,
@@ -211,22 +205,33 @@ func (m SettingsModel) View() string {
 			Foreground(lipgloss.Color("#888888")).
 			Render("Navigate with ↑↓ or j/k • Press Enter to edit/select")
 	}
-	// Footer view
-	footerView := m.footer.View(m.width)
 
-	contentHeight := m.height - 4 // Subtract nav and footer height
-	content := fmt.Sprintf(
-		"%s\n%s%s\n%s\n%s",
-		headerView,
+	// Combine form content
+	mainContent := lipgloss.JoinVertical(
+		lipgloss.Left,
 		inputsView,
 		buttonsContainer,
 		navHelp,
+	)
+
+	headerView := m.header.View(m.width)
+	footerView := m.footer.View(m.width)
+
+	// Calculate available space first
+	availableHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 4
+
+	// Stretch the content to fill available space
+	stretchedContent := lipgloss.NewStyle().
+		Height(availableHeight).
+		Render(mainContent)
+	fullContent := fmt.Sprintf(
+		"%s\n%s\n%s",
+		headerView,
+		stretchedContent,
 		footerView,
 	)
-	contentContainer := lipgloss.NewStyle().
-		Height(contentHeight).Render(content)
 
-	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
+	return styles.PageStyle.Width(m.width - 2).Render(fullContent)
 }
 
 func updateFocusState(m *SettingsModel) {

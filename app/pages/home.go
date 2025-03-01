@@ -52,6 +52,7 @@ func NewHomeModel(keyMap config.KeyMap) HomeModel {
 	return HomeModel{
 		list:   l,
 		header: components.NewHeaderModel("Home"),
+		footer: components.NewFooterModel(),
 	}
 }
 
@@ -65,6 +66,7 @@ func (m HomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.list.SetSize(msg.Width-2, msg.Height-7)
+		return m, nil
 	}
 
 	var cmd tea.Cmd
@@ -75,7 +77,7 @@ func (m HomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m HomeModel) View() string {
 	headerView := m.header.View(m.width)
 	footerView := m.footer.View(m.width)
-	contentHeight := m.height - 4 // Subtract nav and footer height
+	contentHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 4
 	content := fmt.Sprintf(
 		"%s\n%s\n%s",
 		headerView,

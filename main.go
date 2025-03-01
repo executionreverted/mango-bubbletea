@@ -36,6 +36,7 @@ func initialModel() appModel {
 	}
 
 	width, height, _ := term.GetSize(0)
+
 	return appModel{
 		currentPage:   "home",
 		homeModel:     pages.NewHomeModel(keyMap),
@@ -108,10 +109,19 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case key.Matches(msg, m.keyMap.Home):
 			m.currentPage = "home"
+			return m, func() tea.Msg {
+				return tea.WindowSizeMsg{Width: m.width, Height: m.height}
+			}
 		case key.Matches(msg, m.keyMap.Settings):
 			m.currentPage = "settings"
+			return m, func() tea.Msg {
+				return tea.WindowSizeMsg{Width: m.width, Height: m.height}
+			}
 		case key.Matches(msg, m.keyMap.About):
 			m.currentPage = "about"
+			return m, func() tea.Msg {
+				return tea.WindowSizeMsg{Width: m.width, Height: m.height}
+			}
 		}
 	}
 
@@ -176,6 +186,7 @@ func (m appModel) View() string {
 			BorderForeground(lipgloss.Color("#874BFD")).
 			Padding(1).
 			Width(m.width - 4).
+			Height(m.height).
 			Render(helpContent)
 
 		return lipgloss.JoinVertical(lipgloss.Left, nav, helpBox)

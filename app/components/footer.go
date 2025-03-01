@@ -16,5 +16,5 @@ func (m FooterModel) View(width int) string {
 		Background(lipgloss.Color("#2F4858")).
 		Padding(0, 1).
 		Width(width - 2).
-		Render("Bubble Tea App Boilerplate • github.com/yourusername/bubbletea-boilerplate")
+		Render("Bubble Tea App Boilerplate • github.com/executionreverted/mango-bubbletea")
 }

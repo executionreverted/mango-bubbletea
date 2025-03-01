@@ -11,6 +11,7 @@ import (
 
 type AboutModel struct {
 	header components.HeaderModel
+	footer components.FooterModel
 	width  int
 	height int
 }
@@ -18,6 +19,7 @@ type AboutModel struct {
 func NewAboutModel() AboutModel {
 	return AboutModel{
 		header: components.NewHeaderModel("About"),
+		footer: components.NewFooterModel(),
 	}
 }
 
@@ -36,17 +38,21 @@ func (m AboutModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m AboutModel) View() string {
 	headerView := m.header.View(m.width)
+	footerView := m.footer.View(m.width)
 
+	contentHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 4
 	aboutText := lipgloss.NewStyle().
+		Width(m.width - 2).
+		Height(contentHeight). // SET HEIGHT FOR CONTENT
 		Padding(1).
-		Render("Bubble Tea App Boilerplate\nVersion 1.0.0\n\nA Next.js inspired TUI application structure\nwith pages and actions folders.")
-
+		Render("a nice starting point for a bubbletea terminal app")
 	content := fmt.Sprintf(
-		"%s\n%s",
+		"%s\n%s\n%s",
 		headerView,
 		aboutText,
+		footerView,
 	)
-	contentHeight := m.height - 4 // Subtract nav and footer height
+
 	contentContainer := lipgloss.NewStyle().
 		Height(contentHeight).Render(content)
 	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
