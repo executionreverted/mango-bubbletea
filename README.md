@@ -1,18 +1,17 @@
-# 🍵 My Bubble Tea App
+# 🥭 Mango Bubbletea
 
-Hey there! 👋 This is my little terminal UI app that I built while learning [Bubble Tea](https://github.com/charmbracelet/bubbletea). It's still a work in progress as I figure stuff out, but I wanted to share it anyway!
+Hey there! 👋 This is my little terminal UI app that I built while learning [Bubble Tea](https://github.com/charmbracelet/bubbletea). It's still a work in progress as I figure stuff out, but I wanted to share it for example purposes.
 
 ## What's This?
 
-I wanted to learn golang and how to make cool terminal UIs and stumbled upon Bubble Tea. This project is basically me experimenting with it and trying to build something useful along the way. I'm still learning Go and TUI development, so expect some rough edges!
+I wanted to learn Golang and how to make cool terminal UIs and stumbled upon Bubble Tea. This project is basically me experimenting with it and trying to build something useful along the way. I'm still learning Go and TUI development, so expect some rough edges!
 
-## Cool Stuff It Does
+## Cool Stuff It (kinda) Can Do
 
 - Multiple pages (Home, Settings, About) that you can switch between
 - Fancy modal dialogs that pop up over your content
 - Keyboard shortcuts you can customize
 - Looks good even when you resize your terminal
-- Some other stuff I'm still working on...
 
 ## Project Structure
 
