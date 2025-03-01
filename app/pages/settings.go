@@ -5,7 +5,6 @@ import (
 	"bubbletea-app/app/components"
 	"bubbletea-app/app/config"
 	"bubbletea-app/app/global"
-	"bubbletea-app/app/styles"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -49,8 +48,20 @@ func NewSettingsModel(keyMap config.KeyMap) SettingsModel {
 		return nil
 	})
 	leaveButton := components.NewButtonModel("QUIT!", func() tea.Msg {
-		return tea.Quit()
-	})
+		return global.SpawnModalMsg{
+			Title:       "Really?",
+			Description: "Are you sure you want to quit?",
+			OnConfirm: func() tea.Msg {
+				// Actual deletion logic
+				return tea.Quit()
+			},
+			OnCancel: func() tea.Msg {
+				// Optional cancel logic, can be nil, it will close modal anyways
+				return nil
+			},
+		}
+	},
+	)
 
 	return SettingsModel{
 		inputs:     []textinput.Model{hostInput, portInput, apiKeyInput},
@@ -79,7 +90,7 @@ func (m SettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle already focused inputs first
 		for i, input := range m.inputs {
 			if input.Focused() {
-				if key.Matches(msg, m.keyMap.Esc) {
+				if key.Matches(msg, m.keyMap.Esc) || key.Matches(msg, m.keyMap.Enter) {
 					m.inputs[i].Blur()
 					return m, func() tea.Msg {
 						return global.InputFocusChangedMsg(false)
@@ -218,7 +229,7 @@ func (m SettingsModel) View() string {
 	footerView := m.footer.View(m.width)
 
 	// Calculate available space first
-	availableHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 4
+	availableHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 2
 
 	// Stretch the content to fill available space
 	stretchedContent := lipgloss.NewStyle().
@@ -231,7 +242,7 @@ func (m SettingsModel) View() string {
 		footerView,
 	)
 
-	return styles.PageStyle.Width(m.width - 2).Render(fullContent)
+	return fullContent
 }
 
 func updateFocusState(m *SettingsModel) {

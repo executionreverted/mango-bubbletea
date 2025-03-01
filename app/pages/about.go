@@ -2,7 +2,6 @@ package pages
 
 import (
 	"bubbletea-app/app/components"
-	"bubbletea-app/app/styles"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -40,7 +39,7 @@ func (m AboutModel) View() string {
 	headerView := m.header.View(m.width)
 	footerView := m.footer.View(m.width)
 
-	contentHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 4
+	contentHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 2
 	aboutText := lipgloss.NewStyle().
 		Width(m.width - 2).
 		Height(contentHeight). // SET HEIGHT FOR CONTENT
@@ -55,5 +54,5 @@ func (m AboutModel) View() string {
 
 	contentContainer := lipgloss.NewStyle().
 		Height(contentHeight).Render(content)
-	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
+	return contentContainer
 }

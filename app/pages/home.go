@@ -41,6 +41,8 @@ func NewHomeModel(keyMap config.KeyMap) HomeModel {
 	l.Title = "Home Page"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
+	l.SetShowHelp(false)
+	l.SetShowTitle(false)
 	l.Styles.Title = styles.TitleStyle
 
 	// Initialize with data from API
@@ -77,7 +79,7 @@ func (m HomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m HomeModel) View() string {
 	headerView := m.header.View(m.width)
 	footerView := m.footer.View(m.width)
-	contentHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 4
+	contentHeight := m.height - lipgloss.Height(headerView) - lipgloss.Height(footerView) - 2
 	content := fmt.Sprintf(
 		"%s\n%s\n%s",
 		headerView,
@@ -87,5 +89,5 @@ func (m HomeModel) View() string {
 	contentContainer := lipgloss.NewStyle().
 		Height(contentHeight).Render(content)
 
-	return styles.PageStyle.Width(m.width - 2).Render(contentContainer)
+	return contentContainer
 }
