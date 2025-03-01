@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// TODO do config based styling ...
 // Define common styles
 var (
 	TitleStyle = lipgloss.NewStyle().
