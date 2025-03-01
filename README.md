@@ -52,10 +52,7 @@ check @config/Keybindings.go
 
 ```json
 {
-  "Enter": "j",
-  "Esc": "q",
-  "Up": "k",
-  "Down": "x"
+  "Enter": "-",
 }
 ```
 
