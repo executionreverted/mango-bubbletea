@@ -1,5 +1,7 @@
 # 🥭 Mango Bubbletea
 
+![Alt Text](https://github.com/executionreverted/mango-bubbletea/blob/master/views.gif)
+
 Hey there! 👋 This is my little terminal UI app that I built while learning [Bubble Tea](https://github.com/charmbracelet/bubbletea). It's still a work in progress as I figure stuff out, but I wanted to share it for example purposes.
 
 ## What's This?
