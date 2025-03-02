@@ -1,4 +1,4 @@
-# 🥭 Mango Bubbletea
+# 🥭 Mango Bubbletea - a nice starter point
 
 ![Alt Text](https://github.com/executionreverted/mango-bubbletea/blob/master/views.gif)
 
